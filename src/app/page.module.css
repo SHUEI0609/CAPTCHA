@@ -1,0 +1,101 @@
+.mainContainer {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #ffffff;
+}
+
+.formCard {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border: 1px solid #000000;
+  padding: 20px;
+}
+
+.cardHeader {
+  margin-bottom: 20px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 400;
+  color: #000000;
+  margin-bottom: 6px;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #000000;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.inputWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.inputLabel {
+  font-size: 14px;
+  font-weight: 400;
+  color: #000000;
+}
+
+.inputField {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #000000;
+  padding: 8px;
+  color: #000000;
+  font-family: inherit;
+  font-size: 16px;
+  outline: none;
+}
+
+.inputField:focus {
+  outline: 1px solid #000000;
+}
+
+.captchaWrapper {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.errorMessage {
+  border: 1px solid #000000;
+  color: #000000;
+  background: #ffffff;
+  padding: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.submitButton {
+  width: 100%;
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid #000000;
+  padding: 10px;
+  font-family: inherit;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.submitButton:hover:not(:disabled) {
+  background: #eeeeee;
+}
+
+.submitButton:disabled {
+  color: #999999;
+  border-color: #999999;
+  cursor: not-allowed;
+}

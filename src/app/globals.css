@@ -1,0 +1,51 @@
+:root {
+  --background-hex: #ffffff;
+  --background: #ffffff;
+  --foreground: #000000;
+  
+  --card-bg: #ffffff;
+  --card-border: #cccccc;
+  --card-border-hover: #000000;
+  
+  --primary: #000000;
+  --primary-hover: #333333;
+  
+  --success: #000000;
+  --error: #000000;
+  
+  --text-primary: #000000;
+  --text-secondary: #666666;
+  --text-muted: #999999;
+  
+  --font-sans: Arial, Helvetica, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html {
+  height: 100%;
+  color-scheme: light;
+  background-color: #ffffff;
+}
+
+body {
+  min-height: 100%;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Minimalist border overlay */
+.grid-bg-overlay {
+  display: none; /* Removed background patterns for strict simplicity */
+}
+
+.blur-orb {
+  display: none; /* Removed colored ambient orbs */
+}
