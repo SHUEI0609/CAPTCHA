@@ -324,15 +324,69 @@ function renderShape(config: ShapeConfig, cx: number, cy: number, r: number): st
 /**
  * Render contents inside cell (coordinates, counts).
  */
-function renderTextCell(config: TextConfig, startX: number, startY: number, cellSize: number): string {
-  const centerX = startX + cellSize / 2;
-  const centerY = startY + cellSize / 2;
-  const length = config.value.length;
-  const fontSize = length >= 4 ? 34 : length >= 3 ? 42 : 52;
+const PIXEL_GLYPHS: Record<string, string[]> = {
+  '0': ['111', '101', '101', '101', '101', '101', '111'],
+  '1': ['010', '110', '010', '010', '010', '010', '111'],
+  '2': ['111', '001', '001', '111', '100', '100', '111'],
+  '3': ['111', '001', '001', '111', '001', '001', '111'],
+  '4': ['101', '101', '101', '111', '001', '001', '001'],
+  '5': ['111', '100', '100', '111', '001', '001', '111'],
+  '6': ['111', '100', '100', '111', '101', '101', '111'],
+  '7': ['111', '001', '001', '010', '010', '100', '100'],
+  '8': ['111', '101', '101', '111', '101', '101', '111'],
+  '9': ['111', '101', '101', '111', '001', '001', '111'],
+  '-': ['000', '000', '000', '111', '000', '000', '000'],
+  A: ['010', '101', '101', '111', '101', '101', '101'],
+  B: ['110', '101', '101', '110', '101', '101', '110'],
+  C: ['111', '100', '100', '100', '100', '100', '111'],
+  D: ['110', '101', '101', '101', '101', '101', '110'],
+  E: ['111', '100', '100', '111', '100', '100', '111'],
+  F: ['111', '100', '100', '111', '100', '100', '100'],
+  G: ['111', '100', '100', '101', '101', '101', '111'],
+  H: ['101', '101', '101', '111', '101', '101', '101'],
+  I: ['111', '010', '010', '010', '010', '010', '111'],
+  J: ['001', '001', '001', '001', '101', '101', '111'],
+  K: ['101', '101', '110', '100', '110', '101', '101'],
+  L: ['100', '100', '100', '100', '100', '100', '111'],
+  M: ['101', '111', '111', '101', '101', '101', '101'],
+  N: ['101', '111', '111', '111', '101', '101', '101'],
+  O: ['111', '101', '101', '101', '101', '101', '111'],
+  P: ['111', '101', '101', '111', '100', '100', '100'],
+  Q: ['111', '101', '101', '101', '111', '001', '001'],
+  R: ['111', '101', '101', '111', '110', '101', '101'],
+  S: ['111', '100', '100', '111', '001', '001', '111'],
+  T: ['111', '010', '010', '010', '010', '010', '010'],
+  U: ['101', '101', '101', '101', '101', '101', '111'],
+  V: ['101', '101', '101', '101', '101', '101', '010'],
+  W: ['101', '101', '101', '101', '111', '111', '101'],
+  X: ['101', '101', '101', '010', '101', '101', '101'],
+  Y: ['101', '101', '101', '010', '010', '010', '010'],
+  Z: ['111', '001', '001', '010', '100', '100', '111'],
+};
 
-  return `
-    <text x="${centerX}" y="${centerY + fontSize * 0.34}" font-size="${fontSize}" font-family="Courier New, monospace" font-weight="700" fill="#000000" text-anchor="middle">${config.value}</text>
-  `;
+function renderTextCell(config: TextConfig, startX: number, startY: number, cellSize: number): string {
+  const chars = config.value.toUpperCase().split('');
+  const glyphWidth = 3;
+  const glyphHeight = 7;
+  const gap = 1;
+  const totalColumns = chars.length * glyphWidth + Math.max(0, chars.length - 1) * gap;
+  const unit = Math.min(cellSize * 0.48 / totalColumns, cellSize * 0.5 / glyphHeight);
+  const totalWidth = totalColumns * unit;
+  const totalHeight = glyphHeight * unit;
+  const originX = startX + (cellSize - totalWidth) / 2;
+  const originY = startY + (cellSize - totalHeight) / 2;
+
+  return chars.map((char, charIndex) => {
+    const glyph = PIXEL_GLYPHS[char] || PIXEL_GLYPHS['0'];
+    const glyphX = originX + charIndex * (glyphWidth + gap) * unit;
+    return glyph.map((rowPattern, row) => (
+      rowPattern.split('').map((cell, col) => (
+        cell === '1'
+          ? `<rect x="${glyphX + col * unit}" y="${originY + row * unit}" width="${unit * 0.82}" height="${unit * 0.82}" fill="#000000" />`
+          : ''
+      )).join('')
+    )).join('');
+  }).join('');
 }
 
 function renderDominoPips(value: number, centerX: number, centerY: number, size: number): string {
@@ -1166,7 +1220,8 @@ export function renderQuestionSvg(grid: (CaptchaCell | null)[], level = 1): stri
       const centerY = startY + cellSize / 2;
       cellsSvg += `
         <circle cx="${centerX}" cy="${centerY}" r="28" fill="none" stroke="#999999" stroke-width="1.5" stroke-dasharray="3 3" />
-        <text x="${centerX}" y="${centerY + 10}" font-size="30" font-family="Courier New, monospace" font-weight="bold" fill="#000000" text-anchor="middle">?</text>
+        <path d="M ${centerX - 12} ${centerY - 12} C ${centerX - 8} ${centerY - 24}, ${centerX + 18} ${centerY - 22}, ${centerX + 12} ${centerY - 4} C ${centerX + 9} ${centerY + 4}, ${centerX} ${centerY + 4}, ${centerX} ${centerY + 13}" fill="none" stroke="#000000" stroke-width="4" stroke-linecap="round" />
+        <circle cx="${centerX}" cy="${centerY + 24}" r="3" fill="#000000" />
       `;
     } else {
       const config = grid[idx];

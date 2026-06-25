@@ -1,6 +1,18 @@
 import { NextResponse } from 'next/server';
 import { decryptToken, encryptCaptchaProof } from '@/lib/captcha/crypto';
 
+const usedCaptchaSalts = new Map<string, number>();
+
+function rememberCaptchaSalt(salt: string, expiresAt: number) {
+  const now = Date.now();
+  for (const [storedSalt, storedExpiresAt] of usedCaptchaSalts) {
+    if (now > storedExpiresAt) {
+      usedCaptchaSalts.delete(storedSalt);
+    }
+  }
+  usedCaptchaSalts.set(salt, expiresAt);
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -38,10 +50,18 @@ export async function POST(request: Request) {
         message: 'CAPTCHA session has expired. Please refresh.',
       });
     }
+
+    if (usedCaptchaSalts.has(payload.salt)) {
+      return NextResponse.json({
+        success: false,
+        message: 'This CAPTCHA challenge has already been answered.',
+      });
+    }
     
     // 4. Bot prevention check: UI time threshold
     // Humans generally take at least 600ms to visually parse a layout and click.
     if (uiTime < 600) {
+      rememberCaptchaSalt(payload.salt, payload.expiresAt);
       console.warn(`Blocked verify request due to suspicious speed: ${uiTime}ms (BOT detected)`);
       return NextResponse.json({
         success: false,
@@ -50,6 +70,8 @@ export async function POST(request: Request) {
     }
     
     // 5. Validate user selection
+    rememberCaptchaSalt(payload.salt, payload.expiresAt);
+
     if (answerIndex === payload.correctChoiceId) {
       return NextResponse.json({
         success: true,

@@ -116,7 +116,7 @@ export default function Captcha({ onVerifySuccess, onVerifyReset }: CaptchaProps
 
   // Handle choice button click
   const handleChoiceClick = async (choiceIndex: number) => {
-    if (isLoading || isSubmitting || status === 'success' || timeLeft === 0 || !token) {
+    if (isLoading || isSubmitting || status !== 'idle' || timeLeft === 0 || !token) {
       return;
     }
 
@@ -159,12 +159,14 @@ export default function Captcha({ onVerifySuccess, onVerifyReset }: CaptchaProps
         } else {
           // Level clear, advance to the next level
           const nextLvl = currentLevel + 1;
+          setStatus('success');
           setMessage(`LEVEL ${currentLevel} クリア。次の問題へ進みます...`);
           setCurrentLevel(nextLvl);
         }
       } else {
         // Failed: Reset everything back to Level 1
         setStatus('error');
+        setToken(null);
         setMessage(data.message || '不正解。レベル1からやり直します。');
         setTimeout(() => {
           if (currentLevel === 1) {
@@ -177,6 +179,7 @@ export default function Captcha({ onVerifySuccess, onVerifyReset }: CaptchaProps
     } catch (err) {
       console.error(err);
       setStatus('error');
+      setToken(null);
       setMessage('サーバーとの通信中にエラーが発生しました。');
     } finally {
       setIsSubmitting(false);
@@ -259,8 +262,8 @@ export default function Captcha({ onVerifySuccess, onVerifyReset }: CaptchaProps
 
       {/* Challenge Modal Portal Overlay */}
       {showModal && (
-        <div className={styles.modalOverlay} onClick={handleCloseModal}>
-          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
             <div 
               className={`
                 ${styles.container} 
