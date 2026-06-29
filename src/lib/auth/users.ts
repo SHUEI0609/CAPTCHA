@@ -1,105 +1,106 @@
 import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
-import fs from 'fs';
-import path from 'path';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 interface UserRecord {
   id: string;
   email: string;
-  passwordHash: string;
-  createdAt: string;
+  password_hash: string;
 }
 
-const DB_DIR = path.join(process.cwd(), 'data');
-const DB_PATH = path.join(DB_DIR, 'users.json');
 const BCRYPT_ROUNDS = 12;
+const USERS_TABLE = 'app_users';
+
+let supabase: SupabaseClient | null = null;
+let defaultUserReady = false;
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
-function createDefaultUser(): UserRecord {
-  return {
-    id: crypto.randomUUID(),
-    email: 'test@gmail.com',
-    passwordHash: bcrypt.hashSync('test', BCRYPT_ROUNDS),
-    createdAt: new Date().toISOString(),
-  };
-}
+function getSupabase() {
+  if (supabase) return supabase;
 
-function ensureDatabase() {
-  fs.mkdirSync(DB_DIR, { recursive: true });
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!fs.existsSync(DB_PATH)) {
-    writeUsers([createDefaultUser()]);
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error('Supabase environment variables are missing.');
   }
+
+  supabase = createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+
+  return supabase;
 }
 
-function readUsers() {
-  ensureDatabase();
-  try {
-    const raw = fs.readFileSync(DB_PATH, 'utf8');
-    const parsed = JSON.parse(raw) as UserRecord[];
-    if (!Array.isArray(parsed)) {
-      throw new Error('User database root must be an array.');
-    }
+async function ensureDefaultUser() {
+  if (defaultUserReady) return;
 
-    if (!parsed.some((user) => user.email === 'test@gmail.com')) {
-      parsed.unshift(createDefaultUser());
-      writeUsers(parsed);
-    }
+  const client = getSupabase();
+  const email = 'test@gmail.com';
+  const passwordHash = await bcrypt.hash('test', BCRYPT_ROUNDS);
+  const { error } = await client
+    .from(USERS_TABLE)
+    .upsert(
+      { email, password_hash: passwordHash },
+      { onConflict: 'email', ignoreDuplicates: true }
+    );
 
-    return parsed;
-  } catch (error) {
-    const backupPath = path.join(DB_DIR, `users.invalid-${Date.now()}.json`);
-    if (fs.existsSync(DB_PATH)) {
-      fs.renameSync(DB_PATH, backupPath);
-    }
-    console.error('User database was invalid and has been recreated:', error);
-    const users = [createDefaultUser()];
-    writeUsers(users);
-    return users;
+  if (error) {
+    throw new Error(`Failed to seed default user: ${error.message}`);
   }
-}
 
-function writeUsers(users: UserRecord[]) {
-  fs.mkdirSync(DB_DIR, { recursive: true });
-  const tempPath = `${DB_PATH}.${process.pid}.tmp`;
-  fs.writeFileSync(tempPath, JSON.stringify(users, null, 2));
-  fs.renameSync(tempPath, DB_PATH);
+  defaultUserReady = true;
 }
 
 export async function createUser(email: string, password: string) {
-  const normalizedEmail = normalizeEmail(email);
-  const users = readUsers();
+  await ensureDefaultUser();
 
-  if (users.some((user) => user.email === normalizedEmail)) {
+  const normalizedEmail = normalizeEmail(email);
+  const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+  const { error } = await getSupabase()
+    .from(USERS_TABLE)
+    .insert({
+      email: normalizedEmail,
+      password_hash: passwordHash,
+    });
+
+  if (!error) {
+    return { ok: true as const };
+  }
+
+  if (error.code === '23505') {
     return { ok: false as const, reason: 'duplicate' as const };
   }
 
-  const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
-  users.push({
-    id: crypto.randomUUID(),
-    email: normalizedEmail,
-    passwordHash,
-    createdAt: new Date().toISOString(),
-  });
-  writeUsers(users);
-
-  return { ok: true as const };
+  throw new Error(`Failed to create user: ${error.message}`);
 }
 
 export async function verifyUserPassword(email: string, password: string) {
+  await ensureDefaultUser();
+
   const normalizedEmail = normalizeEmail(email);
-  const user = readUsers().find((record) => record.email === normalizedEmail);
+  const { data, error } = await getSupabase()
+    .from(USERS_TABLE)
+    .select('id, email, password_hash')
+    .eq('email', normalizedEmail)
+    .maybeSingle<UserRecord>();
 
-  if (!user) return null;
+  if (error) {
+    throw new Error(`Failed to find user: ${error.message}`);
+  }
 
-  const isValid = await bcrypt.compare(password, user.passwordHash);
+  if (!data) return null;
+
+  const isValid = await bcrypt.compare(password, data.password_hash);
   if (!isValid) return null;
 
   return {
-    id: user.id,
-    email: user.email,
+    id: data.id,
+    email: data.email,
   };
 }

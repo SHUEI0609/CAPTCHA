@@ -46,6 +46,13 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error('Register Error:', error);
+    if (error instanceof Error && error.message.includes('Supabase environment variables')) {
+      return NextResponse.json(
+        { success: false, message: 'Supabase environment variables are not configured.' },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
       { success: false, message: 'Registration server error.' },
       { status: 500 }

@@ -53,6 +53,13 @@ export async function POST(request: Request) {
     return response;
   } catch (error) {
     console.error('Login Error:', error);
+    if (error instanceof Error && error.message.includes('Supabase environment variables')) {
+      return NextResponse.json(
+        { success: false, message: 'Supabase environment variables are not configured.' },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
       { success: false, message: 'Login server error.' },
       { status: 500 }

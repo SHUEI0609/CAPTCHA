@@ -35,3 +35,18 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 # CAPTCHA
+
+## Supabase setup
+
+Run the SQL in `supabase/schema.sql` from the Supabase SQL Editor.
+
+Set these environment variables locally and on Vercel:
+
+```bash
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SESSION_SECRET=replace-with-a-long-random-string
+CAPTCHA_SECRET=replace-with-a-long-random-string
+```
+
+The service role key is used only inside server Route Handlers. Do not expose it in client components.
