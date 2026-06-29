@@ -31,6 +31,32 @@
   color: #000000;
 }
 
+.modeSwitch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.modeButton {
+  background: #ffffff;
+  border: 1px solid #000000;
+  color: #000000;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  padding: 8px;
+}
+
+.modeButton:hover:not(:disabled) {
+  background: #eeeeee;
+}
+
+.modeButtonActive {
+  background: #000000;
+  color: #ffffff;
+}
+
 .formGroup {
   display: flex;
   flex-direction: column;
@@ -71,6 +97,15 @@
 }
 
 .errorMessage {
+  border: 1px solid #000000;
+  color: #000000;
+  background: #ffffff;
+  padding: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.infoMessage {
   border: 1px solid #000000;
   color: #000000;
   background: #ffffff;

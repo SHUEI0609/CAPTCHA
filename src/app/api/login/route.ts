@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { decryptToken } from '@/lib/captcha/crypto';
 import { createSessionToken, SESSION_COOKIE_NAME } from '@/lib/auth/session';
+import { verifyUserPassword } from '@/lib/auth/users';
 
 export async function POST(request: Request) {
   try {
@@ -16,7 +17,8 @@ export async function POST(request: Request) {
       );
     }
 
-    if (email !== 'test@gmail.com' || password !== 'test') {
+    const user = await verifyUserPassword(email, password);
+    if (!user) {
       return NextResponse.json(
         { success: false, message: 'Invalid email or password.' },
         { status: 401 }
@@ -40,7 +42,7 @@ export async function POST(request: Request) {
     const response = NextResponse.json({ success: true, redirectTo: '/congratulations' });
     response.cookies.set({
       name: SESSION_COOKIE_NAME,
-      value: createSessionToken(email),
+      value: createSessionToken(user.email),
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
