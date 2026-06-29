@@ -18,29 +18,55 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
+function createDefaultUser(): UserRecord {
+  return {
+    id: crypto.randomUUID(),
+    email: 'test@gmail.com',
+    passwordHash: bcrypt.hashSync('test', BCRYPT_ROUNDS),
+    createdAt: new Date().toISOString(),
+  };
+}
+
 function ensureDatabase() {
   fs.mkdirSync(DB_DIR, { recursive: true });
 
   if (!fs.existsSync(DB_PATH)) {
-    const defaultUser: UserRecord = {
-      id: crypto.randomUUID(),
-      email: 'test@gmail.com',
-      passwordHash: bcrypt.hashSync('test', BCRYPT_ROUNDS),
-      createdAt: new Date().toISOString(),
-    };
-    fs.writeFileSync(DB_PATH, JSON.stringify([defaultUser], null, 2));
+    writeUsers([createDefaultUser()]);
   }
 }
 
 function readUsers() {
   ensureDatabase();
-  const raw = fs.readFileSync(DB_PATH, 'utf8');
-  return JSON.parse(raw) as UserRecord[];
+  try {
+    const raw = fs.readFileSync(DB_PATH, 'utf8');
+    const parsed = JSON.parse(raw) as UserRecord[];
+    if (!Array.isArray(parsed)) {
+      throw new Error('User database root must be an array.');
+    }
+
+    if (!parsed.some((user) => user.email === 'test@gmail.com')) {
+      parsed.unshift(createDefaultUser());
+      writeUsers(parsed);
+    }
+
+    return parsed;
+  } catch (error) {
+    const backupPath = path.join(DB_DIR, `users.invalid-${Date.now()}.json`);
+    if (fs.existsSync(DB_PATH)) {
+      fs.renameSync(DB_PATH, backupPath);
+    }
+    console.error('User database was invalid and has been recreated:', error);
+    const users = [createDefaultUser()];
+    writeUsers(users);
+    return users;
+  }
 }
 
 function writeUsers(users: UserRecord[]) {
-  ensureDatabase();
-  fs.writeFileSync(DB_PATH, JSON.stringify(users, null, 2));
+  fs.mkdirSync(DB_DIR, { recursive: true });
+  const tempPath = `${DB_PATH}.${process.pid}.tmp`;
+  fs.writeFileSync(tempPath, JSON.stringify(users, null, 2));
+  fs.renameSync(tempPath, DB_PATH);
 }
 
 export async function createUser(email: string, password: string) {
