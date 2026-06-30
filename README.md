@@ -237,13 +237,6 @@ http://localhost:3000
 7. `LOG IN` を押す。
 8. 認証成功後、`/congratulations` に遷移する。
 
-初期ユーザーとして、Supabaseに以下のアカウントが自動作成されます。
-
-```text
-email: test@gmail.com
-password: test
-```
-
 ## Vercelデプロイ時の注意
 
 VercelではローカルファイルをDB代わりに使えないため、ユーザー情報はSupabaseに保存しています。

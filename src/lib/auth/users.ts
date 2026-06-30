@@ -11,7 +11,6 @@ const BCRYPT_ROUNDS = 12;
 const USERS_TABLE = 'app_users';
 
 let supabase: SupabaseClient | null = null;
-let defaultUserReady = false;
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -37,29 +36,7 @@ function getSupabase() {
   return supabase;
 }
 
-async function ensureDefaultUser() {
-  if (defaultUserReady) return;
-
-  const client = getSupabase();
-  const email = 'test@gmail.com';
-  const passwordHash = await bcrypt.hash('test', BCRYPT_ROUNDS);
-  const { error } = await client
-    .from(USERS_TABLE)
-    .upsert(
-      { email, password_hash: passwordHash },
-      { onConflict: 'email', ignoreDuplicates: true }
-    );
-
-  if (error) {
-    throw new Error(`Failed to seed default user: ${error.message}`);
-  }
-
-  defaultUserReady = true;
-}
-
 export async function createUser(email: string, password: string) {
-  await ensureDefaultUser();
-
   const normalizedEmail = normalizeEmail(email);
   const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
   const { error } = await getSupabase()
@@ -81,8 +58,6 @@ export async function createUser(email: string, password: string) {
 }
 
 export async function verifyUserPassword(email: string, password: string) {
-  await ensureDefaultUser();
-
   const normalizedEmail = normalizeEmail(email);
   const { data, error } = await getSupabase()
     .from(USERS_TABLE)
