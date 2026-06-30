@@ -1,52 +1,110 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Secure Portal CAPTCHA App
 
-## Getting Started
+Next.js App Routerで作成した、ログイン認証とIQテスト風CAPTCHAを組み合わせたデモアプリです。
 
-First, run the development server:
+## Features
+
+- セッションベース認証
+- Supabaseを使ったユーザー登録とログイン
+- bcryptjsによるパスワードハッシュ保存
+- メールアドレスの重複登録チェック
+- 10問連続のIQテスト風CAPTCHA
+- CAPTCHAクリア後のみログイン可能
+- ログイン後は保護ページ `/congratulations` に遷移
+
+## Tech Stack
+
+- Next.js 16
+- React 19
+- TypeScript
+- Supabase
+- bcryptjs
+- sharp
+
+## Setup
+
+依存関係をインストールします。
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# CAPTCHA
-
-## Supabase setup
-
-Run the SQL in `supabase/schema.sql` from the Supabase SQL Editor.
-
-Set these environment variables locally and on Vercel:
+SupabaseのSQL Editorで以下のSQLを実行します。
 
 ```bash
+supabase/schema.sql
+```
+
+ローカルでは `.env.local`、VercelではEnvironment Variablesに以下を設定します。
+
+```env
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 SESSION_SECRET=replace-with-a-long-random-string
 CAPTCHA_SECRET=replace-with-a-long-random-string
 ```
 
-The service role key is used only inside server Route Handlers. Do not expose it in client components.
+`SUPABASE_SERVICE_ROLE_KEY` はサーバー側のRoute Handlerでのみ使用します。Client Componentや `NEXT_PUBLIC_` 付きの環境変数として公開しないでください。
+
+## Development
+
+```bash
+npm run dev
+```
+
+ブラウザで [http://localhost:3000](http://localhost:3000) を開きます。
+
+## How to Use
+
+1. `REGISTER` に切り替えます。
+2. メールアドレスとパスワードを入力して登録します。
+3. `LOG IN` に戻ります。
+4. メールアドレスとパスワードを入力します。
+5. CAPTCHAを10問クリアします。
+6. `LOG IN` を押すと `/congratulations` に移動します。
+
+初期ユーザーとして、Supabaseに以下のアカウントが自動作成されます。
+
+```text
+email: test@gmail.com
+password: test
+```
+
+## Authentication Flow
+
+登録時:
+
+1. `/api/register` がメールアドレスとパスワードを受け取ります。
+2. メール形式とパスワード長を検証します。
+3. bcryptjsでパスワードをハッシュ化します。
+4. Supabaseの `app_users` テーブルに保存します。
+5. 同じメールアドレスが存在する場合は登録を拒否します。
+
+ログイン時:
+
+1. CAPTCHAを10問クリアするとCAPTCHA証明トークンが発行されます。
+2. `/api/login` がメールアドレス、パスワード、CAPTCHA証明トークンを受け取ります。
+3. Supabaseからユーザーを取得し、bcryptjsでパスワードを照合します。
+4. CAPTCHA証明トークンを検証します。
+5. 成功時にHttpOnly Cookieへセッショントークンを保存します。
+
+## Supabase Schema
+
+テーブル定義は [supabase/schema.sql](./supabase/schema.sql) にあります。
+
+```sql
+create table if not exists public.app_users (
+  id uuid primary key default gen_random_uuid(),
+  email text not null unique,
+  password_hash text not null,
+  created_at timestamptz not null default now()
+);
+```
+
+## Scripts
+
+```bash
+npm run lint
+npm run build
+npm run start
+```
